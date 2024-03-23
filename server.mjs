@@ -53,13 +53,26 @@ const getTelegramsAndColumnsForQuery = async (ctx) => {
     throw new Error('Columns is required')
   }
 
+  const granularity = Number(ctx.request.query.granularity) || 0.1
+  const nthRow = Math.round(1 / granularity)
+
   const columns = JSON.parse(ctx.request.query.columns)
 
   const telegrams = await knex('telegrams')
     .select('timestamp', ...columns)
+    .from(
+      knex('telegrams')
+        .select(
+          knex.raw('ROW_NUMBER() OVER (ORDER BY timestamp) as rownum'),
+          'timestamp',
+          ...columns,
+        )
+        .orderBy('timestamp')
+        .where('timestamp', '>=', period[0].getTime())
+        .andWhere('timestamp', '<=', period[1].getTime()),
+    )
+    .where(knex.raw('rownum % ?', [nthRow]), '=', 0)
     .orderBy('timestamp')
-    .where('timestamp', '>=', period[0].getTime())
-    .andWhere('timestamp', '<=', period[1].getTime())
 
   return { telegrams, columns, from: period[0], to: period[1] }
 }

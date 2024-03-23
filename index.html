@@ -78,18 +78,35 @@
         const from =
           document.querySelector('#start_date').valueAsDate || new Date(0)
         const to = document.querySelector('#end_date').valueAsDate || new Date()
+        const period = [from, to]
 
-        drawChartForSet('energy', 'chart_div_energy', 'kWh')
-        drawChartForSet('power', 'chart_div_power', 'kW')
-        drawChartForSet('voltage', 'chart_div_voltage', 'V')
-        drawChartForSet('gas', 'chart_div_gas', 'm^3')
+        const granularity = document.querySelector('#granularity').value
+
+        drawChartForSet(
+          'energy',
+          'chart_div_energy',
+          'kWh',
+          period,
+          granularity,
+        )
+        drawChartForSet('power', 'chart_div_power', 'kW', period, granularity)
+        drawChartForSet(
+          'voltage',
+          'chart_div_voltage',
+          'V',
+          period,
+          granularity,
+        )
+        drawChartForSet('gas', 'chart_div_gas', 'm^3', period, granularity)
       }
 
-      function drawChartForSet(columnSetKey, chartDivId, unit) {
-        const period = convertPeriod(
-          document.querySelector('#period_select').value,
-        )
-
+      function drawChartForSet(
+        columnSetKey,
+        chartDivId,
+        unit,
+        period,
+        granularity,
+      ) {
         const jsonData = JSON.parse(
           $.ajax({
             url: 'data.json',
@@ -99,6 +116,7 @@
                 period.map((period) => period.toISOString()),
               ),
               columns: JSON.stringify(columnSets[columnSetKey]),
+              granularity,
             },
             async: false,
           }).responseText,
@@ -140,6 +158,7 @@
             endDate.toISOString(),
           ]),
           columns: JSON.stringify(columns),
+          granularity,
         })
 
         window.open(`data.xlsx?${queryParams}`)
@@ -218,43 +237,58 @@
     </style>
   </head>
   <body>
-    <div id="period" style=""></div>
-    <div
-      id="download"
-      style="
-        border: 1px solid black;
-        display: flex;
-        justify-content: space-between;
-        gap: 6px;
-        padding: 6px;
-        max-width: 500px;
-        margin: auto;
-      "
-    >
-      <div>
-        <label for="period_select">Periode</label>
-        <select id="period_select" onChange="period_changed()">
-          <option value="P1D">Day</option>
-          <option value="P7D">Week</option>
-          <option value="P1M">Month</option>
-          <option value="P1Y">Year</option>
-          <option value="P100Y" selected>All</option>
-        </select>
-      </div>
-      <div>
-        <label for="start_date">Van</label>
-        <input type="date" id="start_date" />
-      </div>
+    <div style="text-align: center">
+      <div
+        style="
+          display: inline-flex;
+          gap: 6px;
+          padding: 6px;
+          border: 1px solid black;
+          text-align: left;
+        "
+      >
+        <div style="display: flex; flex-direction: column">
+          <label for="period_select">Periode</label>
+          <select id="period_select" onChange="period_changed()">
+            <option value="P1D">Day</option>
+            <option value="P7D">Week</option>
+            <option value="P1M">Month</option>
+            <option value="P1Y">Year</option>
+            <option value="P100Y" selected>All</option>
+          </select>
+        </div>
+        <div style="display: flex; flex-direction: column">
+          <label for="start_date">Van</label>
+          <input type="date" id="start_date" />
+        </div>
 
-      <div>
-        <label for="end_date">Tot</label>
-        <input type="date" id="end_date" />
-      </div>
-      <div>
-        <button style="width: 100%" onClick="download()">Download</button>
-        <button style="width: 100%" onClick="redraw_chart()">Toepassen</button>
+        <div style="display: flex; flex-direction: column">
+          <label for="end_date">Tot</label>
+          <input type="date" id="end_date" />
+        </div>
+
+        <div style="display: flex; flex-direction: column">
+          <label for="granularity">Korrel</label>
+          <input
+            type="number"
+            id="granularity"
+            value="0.1"
+            step="0.01"
+            max="1"
+            min="0.01"
+            style="width: 50px"
+          />
+        </div>
+
+        <div style="display: flex; flex-direction: column">
+          <button style="width: 100%" onClick="download()">Download</button>
+          <button style="width: 100%" onClick="redraw_chart()">
+            Toepassen
+          </button>
+        </div>
       </div>
     </div>
+
     <div id="chart_div_energy" style="width: 1350px; height: 600px">
       <div class="loader">Loading...</div>
     </div>
