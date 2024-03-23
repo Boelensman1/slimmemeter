@@ -1,6 +1,7 @@
 import Koa from 'koa'
 import Router from '@koa/router'
 import send from 'koa-send'
+import xlsx from 'node-xlsx'
 
 import createKnex from 'knex'
 import knexConfig from './knexfile.mjs'
@@ -13,24 +14,33 @@ const router = new Router()
 const toGoogleChartDate = (date) =>
   `Date(${date.getFullYear()}, ${date.getMonth()}, ${date.getDate()}, ${date.getHours()}, ${date.getMinutes()}, ${date.getSeconds()}, ${date.getMilliseconds()})`
 
+function filenameDate(date) {
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ]
+  const day = date.getDate().toString().padStart(2, '0') // Ensures two-digit day
+  const month = months[date.getMonth()] // Gets the month name
+  const year = date.getFullYear()
+
+  return `${month} ${day} ${year}`
+}
+
 router.get('/', (ctx) => {
   return send(ctx, './index.html')
 })
 
-const cols = [
-  'electricityDeliveredTariff1',
-  'electricityDeliveredTariff2',
-  'electricityDeliveredByClientTariff1',
-  'electricityDeliveredByClientTariff2',
-  'actualElectricityPowerDelivered',
-  'actualElectricityPowerReceived',
-  'instantaneousVoltageL1',
-  'instantaneousVoltageL2',
-  'instantaneousVoltageL3',
-  'last5MinuteValueConnectedValue',
-]
-
-router.get('/data.json', async (ctx) => {
+const getTelegramsAndColumnsForQuery = async (ctx) => {
   // get period
   const now = new Date()
   const oneDayBefore = new Date()
@@ -51,6 +61,12 @@ router.get('/data.json', async (ctx) => {
     .where('timestamp', '>=', period[0].getTime())
     .andWhere('timestamp', '<=', period[1].getTime())
 
+  return { telegrams, columns, from: period[0], to: period[1] }
+}
+
+router.get('/data.json', async (ctx) => {
+  const { telegrams, columns } = await getTelegramsAndColumnsForQuery(ctx)
+
   ctx.body = {
     cols: [
       { label: 'Time', type: 'date' },
@@ -66,6 +82,26 @@ router.get('/data.json', async (ctx) => {
       ],
     })),
   }
+})
+
+router.get('/data.xlsx', async (ctx) => {
+  const { telegrams, from, to } = await getTelegramsAndColumnsForQuery(ctx)
+
+  const data = [
+    Object.keys(telegrams[0]),
+    ...telegrams.map((telegram) =>
+      Object.values({
+        ...telegram,
+        timestamp: new Date(telegram.timestamp),
+      }),
+    ),
+  ]
+  var buffer = xlsx.build([{ name: 'slimmemeter', data }])
+  const filename = `slimmemeter ${filenameDate(from)}-${filenameDate(to)}.xlsx`
+
+  ctx.type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  ctx.set('Content-Disposition', `attachment; filename="${filename}"`)
+  ctx.body = buffer
 })
 
 app.use(router.routes()).use(router.allowedMethods())

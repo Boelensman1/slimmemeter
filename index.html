@@ -74,31 +74,10 @@
       google.charts.load('current', { packages: ['corechart', 'line'] })
       google.charts.setOnLoadCallback(drawChart)
 
-      const columns = [
-        'electricityDeliveredTariff1',
-        'electricityDeliveredTariff2',
-        'electricityDeliveredByClientTariff1',
-        'electricityDeliveredByClientTariff2',
-      ]
-
       function drawChart() {
-        const period = convertPeriod(
-          document.querySelector('#period_select').value,
-        )
-
-        const jsonData = JSON.parse(
-          $.ajax({
-            url: 'data.json',
-            dataType: 'json',
-            data: {
-              period: JSON.stringify(
-                period.map((period) => period.toISOString()),
-              ),
-              columns: JSON.stringify(columns),
-            },
-            async: false,
-          }).responseText,
-        )
+        const from =
+          document.querySelector('#start_date').valueAsDate || new Date(0)
+        const to = document.querySelector('#end_date').valueAsDate || new Date()
 
         drawChartForSet('energy', 'chart_div_energy', 'kWh')
         drawChartForSet('power', 'chart_div_power', 'kW')
@@ -143,8 +122,36 @@
         chart.draw(data, options)
       }
 
-      function period_changed(e) {
+      function redraw_chart(e) {
         drawChart()
+      }
+
+      function download(e) {
+        const startDate =
+          document.querySelector('#start_date').valueAsDate || new Date(0)
+        const endDate =
+          document.querySelector('#end_date').valueAsDate || new Date()
+
+        const columns = Object.values(columnSets).flat()
+
+        const queryParams = new URLSearchParams({
+          period: JSON.stringify([
+            startDate.toISOString(),
+            endDate.toISOString(),
+          ]),
+          columns: JSON.stringify(columns),
+        })
+
+        window.open(`data.xlsx?${queryParams}`)
+      }
+
+      function period_changed(e) {
+        const [from, to] = convertPeriod(
+          document.querySelector('#period_select').value,
+        )
+
+        document.querySelector('#start_date').valueAsDate = from
+        document.querySelector('#end_date').valueAsDate = to
       }
     </script>
     <style>
@@ -211,14 +218,42 @@
     </style>
   </head>
   <body>
-    <div id="period">
-      <select id="period_select" onChange="period_changed()">
-        <option value="P1D">Day</option>
-        <option value="P7D">Week</option>
-        <option value="P1M">Month</option>
-        <option value="P1Y">Year</option>
-        <option value="P100Y" selected>All</option>
-      </select>
+    <div id="period" style=""></div>
+    <div
+      id="download"
+      style="
+        border: 1px solid black;
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+        padding: 6px;
+        max-width: 500px;
+        margin: auto;
+      "
+    >
+      <div>
+        <label for="period_select">Periode</label>
+        <select id="period_select" onChange="period_changed()">
+          <option value="P1D">Day</option>
+          <option value="P7D">Week</option>
+          <option value="P1M">Month</option>
+          <option value="P1Y">Year</option>
+          <option value="P100Y" selected>All</option>
+        </select>
+      </div>
+      <div>
+        <label for="start_date">Van</label>
+        <input type="date" id="start_date" />
+      </div>
+
+      <div>
+        <label for="end_date">Tot</label>
+        <input type="date" id="end_date" />
+      </div>
+      <div>
+        <button style="width: 100%" onClick="download()">Download</button>
+        <button style="width: 100%" onClick="redraw_chart()">Toepassen</button>
+      </div>
     </div>
     <div id="chart_div_energy" style="width: 1350px; height: 600px">
       <div class="loader">Loading...</div>
