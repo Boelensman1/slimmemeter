@@ -5,8 +5,6 @@ import { ReadlineParser } from '@serialport/parser-readline'
 import createKnex from 'knex'
 import knexConfig from './knexfile.mjs'
 
-import './server.mjs'
-
 const knex = createKnex(knexConfig.development)
 
 const headerMatcher = 'ESMR5.0'
