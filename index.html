@@ -38,6 +38,17 @@
         )
       }
 
+      const dateForInput = (date) => {
+        // Adjust for the timezone offset to get the correct UTC date and time
+        const adjustedDate = new Date(
+          date.getTime() - date.getTimezoneOffset() * 60000,
+        )
+
+        // Format the date to a string that can be used with the datetime-local input
+        // toISOString returns a string in the format YYYY-MM-DDTHH:MM:SS.sssZ, but we only need up to minutes
+        return adjustedDate.toISOString().slice(0, 16)
+      }
+
       const convertPeriod = (period) => {
         const now = new Date()
         switch (period) {
@@ -170,8 +181,8 @@
           document.querySelector('#period_select').value,
         )
 
-        document.querySelector('#start_date').valueAsDate = from
-        document.querySelector('#end_date').valueAsDate = to
+        document.querySelector('#start_date').value = dateForInput(from)
+        document.querySelector('#end_date').value = dateForInput(to)
       }
     </script>
     <style>
