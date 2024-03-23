@@ -53,7 +53,7 @@ const getTelegramsAndColumnsForQuery = async (ctx) => {
     throw new Error('Columns is required')
   }
 
-  const granularity = Number(ctx.request.query.granularity) || 0.1
+  const granularity = Number(ctx.request.query.granularity) || 0.01
   const nthRow = Math.round(1 / granularity)
 
   const columns = JSON.parse(ctx.request.query.columns)
