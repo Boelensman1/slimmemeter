@@ -51,7 +51,7 @@ const parseDateTime = (line) => {
 
     return dateObject
   }
-  throw new Error(`Invalid datetime format for key ${key}: "${line}"`)
+  throw new Error(`Invalid datetime format for line: "${line}"`)
 }
 
 const parsePowerFailureEventLog = (line) => {
