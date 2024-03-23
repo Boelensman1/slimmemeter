@@ -151,6 +151,7 @@
           document.querySelector('#end_date').valueAsDate || new Date()
 
         const columns = Object.values(columnSets).flat()
+        const granularity = document.querySelector('#granularity').value
 
         const queryParams = new URLSearchParams({
           period: JSON.stringify([
