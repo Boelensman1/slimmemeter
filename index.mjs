@@ -171,11 +171,16 @@ const pushToDb = async (telegram) => {
 let sampleCounter = 0
 let lastTelegram = null
 const onTelegram = (telegram) => {
-  lastTelegram = parseTelegram(telegram)
-  sampleCounter += sampleDensity
-  if (sampleCounter >= 1) {
-    sampleCounter = 0
-    pushToDb(lastTelegram)
+  try {
+    lastTelegram = parseTelegram(telegram)
+
+    sampleCounter += sampleDensity
+    if (sampleCounter >= 1) {
+      sampleCounter = 0
+      pushToDb(lastTelegram)
+    }
+  } catch (err) {
+    console.error(err)
   }
 }
 
