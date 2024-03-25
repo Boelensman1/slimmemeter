@@ -37,6 +37,7 @@ function filenameDate(date) {
 }
 
 router.get('/', (ctx) => {
+  console.log('Serving index.html')
   return send(ctx, './index.html')
 })
 
@@ -78,6 +79,7 @@ const getTelegramsAndColumnsForQuery = async (ctx) => {
 }
 
 router.get('/data.json', async (ctx) => {
+  console.log('Serving data.json')
   const { telegrams, columns } = await getTelegramsAndColumnsForQuery(ctx)
 
   ctx.body = {
@@ -98,6 +100,7 @@ router.get('/data.json', async (ctx) => {
 })
 
 router.get('/data.xlsx', async (ctx) => {
+  console.log('Serving data.xlsx')
   const { telegrams, from, to } = await getTelegramsAndColumnsForQuery(ctx)
 
   const data = [

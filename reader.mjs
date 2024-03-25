@@ -177,6 +177,7 @@ const onTelegram = (telegram) => {
     sampleCounter += sampleDensity
     if (sampleCounter >= 1) {
       sampleCounter = 0
+      console.log(new Date().toLocaleString(), 'Pushed telegram to db')
       pushToDb(lastTelegram)
     }
   } catch (err) {
