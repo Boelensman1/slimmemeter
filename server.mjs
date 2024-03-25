@@ -122,4 +122,4 @@ app.use(router.routes()).use(router.allowedMethods())
 const port = process.env.PORT ?? 3000
 app.listen(port)
 
-console.log('Server started on port', port)
+console.log('Slimme meter server started, listening on port', port)
