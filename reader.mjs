@@ -164,7 +164,7 @@ const pushToDb = async (telegram) => {
     instantaneousVoltageL2: telegram.instantaneousVoltageL2.value,
     instantaneousVoltageL3: telegram.instantaneousVoltageL3.value,
     last5MinuteValueConnectedValue: telegram.last5MinuteValueConnected.value,
-    timestamp: telegram.timeStamp,
+    timestamp: new Date(telegram.timeStamp),
   })
 }
 

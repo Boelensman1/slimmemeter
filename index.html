@@ -117,20 +117,25 @@
         period,
         granularity,
       ) {
-        const jsonData = JSON.parse(
-          $.ajax({
-            url: 'data.json',
-            dataType: 'json',
-            data: {
-              period: JSON.stringify(
-                period.map((period) => period.toISOString()),
-              ),
-              columns: JSON.stringify(columnSets[columnSetKey]),
-              granularity,
-            },
-            async: false,
-          }).responseText,
-        )
+        const response = $.ajax({
+          url: 'data.json',
+          dataType: 'json',
+          data: {
+            period: JSON.stringify(
+              period.map((period) => period.toISOString()),
+            ),
+            columns: JSON.stringify(columnSets[columnSetKey]),
+            granularity,
+          },
+          async: false,
+        })
+
+        if (response.status !== 200) {
+          alert(response.responseText)
+          throw new Error(response.responseText)
+        }
+
+        const jsonData = JSON.parse(response.responseText)
 
         const options = {
           curveType: 'none',
@@ -280,15 +285,14 @@
 
         <div style="display: flex; flex-direction: column">
           <label for="granularity">Korrel</label>
-          <input
-            type="number"
-            id="granularity"
-            value="0.0001"
-            step="0.0001"
-            max="1"
-            min="0.00001"
-            style="width: 50px"
-          />
+          <select id="granularity">
+            <option value="second">Second</option>
+            <option value="minute">Minute</option>
+            <option value="hour">Hour</option>
+            <option value="day">Day</option>
+            <option value="week">Week</option>
+            <option value="month">Month</option>
+          </select>
         </div>
 
         <div style="display: flex; flex-direction: column">

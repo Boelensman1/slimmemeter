@@ -1,10 +1,13 @@
 export default {
   development: {
-    client: 'better-sqlite3',
+    client: 'pg',
     connection: {
-      filename: './data.sqlite3',
+      host: 'localhost',
+      port: 5432,
+      user: 'user',
+      password: 'password',
+      database: 'slimmemeter',
     },
-    useNullAsDefault: true,
     migrations: {
       // important!
       loadExtensions: ['.mjs'],

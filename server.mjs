@@ -42,10 +42,9 @@ router.get('/', (ctx) => {
 })
 
 const getTelegramsAndColumnsForQuery = async (ctx) => {
-  // get period
+  // Get period
   const now = new Date()
-  const oneDayBefore = new Date()
-  oneDayBefore.setDate(now.getDate() - 1)
+  const oneDayBefore = new Date(now.getTime() - 24 * 60 * 60 * 1000)
   let period = [oneDayBefore, now] // default period
   if (ctx.request.query.period) {
     period = JSON.parse(ctx.request.query.period).map((d) => new Date(d))
@@ -54,61 +53,71 @@ const getTelegramsAndColumnsForQuery = async (ctx) => {
     throw new Error('Columns is required')
   }
 
-  const granularity = Number(ctx.request.query.granularity) || 0.01
-  const nthRow = Math.round(1 / granularity)
-
   const columns = JSON.parse(ctx.request.query.columns)
+  const granularity = ctx.request.query.granularity || 'hour'
 
-  const [extremes] = await knex('telegrams').select(
-    knex.raw('MIN(timestamp)'),
-    knex.raw('MAX(timestamp)'),
-  )
-  const minTimestamp = extremes['MIN(timestamp)']
-  const maxTimestamp = extremes['MAX(timestamp)']
+  // Validate granularity based on period
+  const periodDuration = period[1].getTime() - period[0].getTime()
+  const hours = periodDuration / (60 * 60 * 1000)
+  const days = hours / 24
 
-  const periodDuration =
-    Math.min(maxTimestamp, period[1].getTime()) -
-    Math.max(minTimestamp, period[0].getTime())
-  const recordsEstimation = periodDuration / 7 / nthRow
-
-  if (recordsEstimation > 10 ** 6) {
-    throw new Error('Too many rows')
+  if (granularity === 'second' && hours > 12) {
+    throw new Error(
+      'Second granularity is only allowed for periods up to 12 hours',
+    )
+  }
+  if (granularity === 'minute' && days > 1) {
+    throw new Error(
+      'Minute granularity is only allowed for periods up to 1 day',
+    )
+  }
+  if (granularity === 'hour' && days > 14) {
+    throw new Error(
+      'Hour granularity is only allowed for periods up to 14 days',
+    )
   }
 
-  const intervalSeconds = 7 * nthRow
-
-  const telegrams = await knex('telegrams')
-    .select('timestamp', ...columns)
-    .whereBetween('timestamp', [period[0].getTime(), period[1].getTime()])
-    .andWhere(
-      knex.raw('(timestamp - ?) % ? = 0', [
-        period[0].getTime(),
-        intervalSeconds * 1000, // Convert to milliseconds
-      ]),
+  let query = knex('telegrams')
+    .select(
+      knex.raw(`DISTINCT ON (date_trunc('${granularity}', "timestamp")) *`),
     )
-    .orderBy('timestamp')
+    .whereBetween('timestamp', period)
+    .orderBy(knex.raw(`date_trunc('${granularity}', "timestamp")`))
+    .orderBy('timestamp', 'DESC')
+
+  // Add column selection
+  if (columns.length > 0) {
+    query = query.select('timestamp', ...columns)
+  }
+
+  const telegrams = await query
 
   return { telegrams, columns, from: period[0], to: period[1] }
 }
 
 router.get('/data.json', async (ctx) => {
   console.log('Serving data.json')
-  const { telegrams, columns } = await getTelegramsAndColumnsForQuery(ctx)
+  try {
+    const { telegrams, columns } = await getTelegramsAndColumnsForQuery(ctx)
 
-  ctx.body = {
-    cols: [
-      { label: 'Time', type: 'date' },
-      ...columns.map((column) => ({
-        label: column,
-        type: 'number',
-      })),
-    ],
-    rows: telegrams.map((data) => ({
-      c: [
-        { v: toGoogleChartDate(new Date(data.timestamp)) },
-        ...columns.map((column) => ({ v: data[column] })),
+    ctx.body = {
+      cols: [
+        { label: 'Time', type: 'date' },
+        ...columns.map((column) => ({
+          label: column,
+          type: 'number',
+        })),
       ],
-    })),
+      rows: telegrams.map((data) => ({
+        c: [
+          { v: toGoogleChartDate(new Date(data.timestamp)) },
+          ...columns.map((column) => ({ v: data[column] })),
+        ],
+      })),
+    }
+  } catch (err) {
+    ctx.status = 400
+    ctx.body = err.message
   }
 })
 
