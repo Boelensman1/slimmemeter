@@ -170,7 +170,7 @@ const pushToDb = async (telegram) => {
 
 let sampleCounter = 0
 let lastTelegram = null
-const onTelegram = (telegram) => {
+const onTelegram = async (telegram) => {
   try {
     lastTelegram = parseTelegram(telegram)
 
@@ -178,7 +178,7 @@ const onTelegram = (telegram) => {
     if (sampleCounter >= 1) {
       sampleCounter = 0
       console.log(new Date().toLocaleString(), 'Pushed telegram to db')
-      pushToDb(lastTelegram)
+      await pushToDb(lastTelegram)
     }
   } catch (err) {
     console.error(err)

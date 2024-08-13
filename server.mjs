@@ -59,20 +59,33 @@ const getTelegramsAndColumnsForQuery = async (ctx) => {
 
   const columns = JSON.parse(ctx.request.query.columns)
 
+  const [extremes] = await knex('telegrams').select(
+    knex.raw('MIN(timestamp)'),
+    knex.raw('MAX(timestamp)'),
+  )
+  const minTimestamp = extremes['MIN(timestamp)']
+  const maxTimestamp = extremes['MAX(timestamp)']
+
+  const periodDuration =
+    Math.min(maxTimestamp, period[1].getTime()) -
+    Math.max(minTimestamp, period[0].getTime())
+  const recordsEstimation = periodDuration / 7 / nthRow
+
+  if (recordsEstimation > 10 ** 6) {
+    throw new Error('Too many rows')
+  }
+
+  const intervalSeconds = 7 * nthRow
+
   const telegrams = await knex('telegrams')
     .select('timestamp', ...columns)
-    .from(
-      knex('telegrams')
-        .select(
-          knex.raw('ROW_NUMBER() OVER (ORDER BY timestamp) as rownum'),
-          'timestamp',
-          ...columns,
-        )
-        .orderBy('timestamp')
-        .where('timestamp', '>=', period[0].getTime())
-        .andWhere('timestamp', '<=', period[1].getTime()),
+    .whereBetween('timestamp', [period[0].getTime(), period[1].getTime()])
+    .andWhere(
+      knex.raw('(timestamp - ?) % ? = 0', [
+        period[0].getTime(),
+        intervalSeconds * 1000, // Convert to milliseconds
+      ]),
     )
-    .where(knex.raw('rownum % ?', [nthRow]), '=', 0)
     .orderBy('timestamp')
 
   return { telegrams, columns, from: period[0], to: period[1] }
