@@ -66,28 +66,37 @@ const getTelegramsAndColumnsForQuery = async (ctx) => {
       'Second granularity is only allowed for periods up to 12 hours',
     )
   }
-  if (granularity === 'minute' && days > 1) {
+  if (granularity === 'minute' && days > 14) {
     throw new Error(
-      'Minute granularity is only allowed for periods up to 1 day',
+      'Minute granularity is only allowed for periods up to 14 days',
     )
   }
-  if (granularity === 'hour' && days > 14) {
+  if (granularity === 'hour' && days > 31) {
     throw new Error(
-      'Hour granularity is only allowed for periods up to 14 days',
+      'Hour granularity is only allowed for periods up to 31 days',
     )
   }
 
-  let query = knex('telegrams')
-    .select(
-      knex.raw(`DISTINCT ON (date_trunc('${granularity}', "timestamp")) *`),
+  let query = knex
+    .with(
+      'truncated_time_data',
+      knex.raw(
+        `SELECT
+           timestamp,
+           immutable_date_trunc(?, "timestamp") AS truncated_time
+         FROM telegrams`,
+        [granularity],
+      ),
     )
-    .whereBetween('timestamp', period)
-    .orderBy(knex.raw(`date_trunc('${granularity}', "timestamp")`))
-    .orderBy('timestamp', 'DESC')
+    .fromRaw(`"truncated_time_data", "telegrams"`)
+    .distinctOn('truncated_time_data.truncated_time')
+    .whereRaw('"telegrams"."timestamp" = "truncated_time_data"."timestamp"')
+    .whereBetween('truncated_time_data.truncated_time', period)
+    .orderBy('truncated_time_data.truncated_time', 'DESC')
 
   // Add column selection
   if (columns.length > 0) {
-    query = query.select('timestamp', ...columns)
+    query = query.select('telegrams.timestamp', ...columns)
   }
 
   const telegrams = await query

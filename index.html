@@ -24,19 +24,6 @@
         gas: ['last5MinuteValueConnectedValue'],
       }
 
-      const convertToDate = (dateString) => {
-        const parts = dateString.match(/\d+/g).map(Number)
-        return new Date(
-          parts[0],
-          parts[1],
-          parts[2],
-          parts[3],
-          parts[4],
-          parts[5],
-          parts[6],
-        )
-      }
-
       const dateForInput = (date) => {
         // Adjust for the timezone offset to get the correct UTC date and time
         const adjustedDate = new Date(
@@ -46,6 +33,14 @@
         // Format the date to a string that can be used with the datetime-local input
         // toISOString returns a string in the format YYYY-MM-DDTHH:MM:SS.sssZ, but we only need up to minutes
         return adjustedDate.toISOString().slice(0, 16)
+      }
+
+      const dateForServer = (date) => {
+        // Adjust for the timezone offset to get the correct date and time
+        const adjustedDate = new Date(
+          date.getTime() + date.getTimezoneOffset() * 60000,
+        )
+        return adjustedDate
       }
 
       const convertPeriod = (period) => {
@@ -88,7 +83,7 @@
         const from =
           document.querySelector('#start_date').valueAsDate || new Date(0)
         const to = document.querySelector('#end_date').valueAsDate || new Date()
-        const period = [from, to]
+        const period = [from, to].map((period) => dateForServer(period))
 
         const granularity = document.querySelector('#granularity').value
 
@@ -188,6 +183,7 @@
         document.querySelector('#start_date').value = dateForInput(from)
         document.querySelector('#end_date').value = dateForInput(to)
       }
+      period_changed()
     </script>
     <style>
       .loader,
@@ -267,7 +263,7 @@
           <label for="period_select">Periode</label>
           <select id="period_select" onChange="period_changed()">
             <option value="P1D">Day</option>
-            <option value="P7D">Week</option>
+            <option value="P7D" selected>Week</option>
             <option value="P1M">Month</option>
             <option value="P1Y">Year</option>
             <option value="P100Y" selected>All</option>
@@ -287,7 +283,7 @@
           <label for="granularity">Korrel</label>
           <select id="granularity">
             <option value="second">Second</option>
-            <option value="minute">Minute</option>
+            <option value="minute" selected>Minute</option>
             <option value="hour">Hour</option>
             <option value="day">Day</option>
             <option value="week">Week</option>
