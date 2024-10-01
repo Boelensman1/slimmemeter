@@ -41,7 +41,7 @@ router.get('/', (ctx) => {
   return send(ctx, './index.html')
 })
 
-const getTelegramsAndColumnsForQuery = async (ctx) => {
+const getTelegramsAndColumnsForQuery = async (ctx, forDownload) => {
   // Get period
   const now = new Date()
   const oneDayBefore = new Date(now.getTime() - 24 * 60 * 60 * 1000)
@@ -56,20 +56,22 @@ const getTelegramsAndColumnsForQuery = async (ctx) => {
   const columns = JSON.parse(ctx.request.query.columns)
   const granularity = ctx.request.query.granularity || 'hour'
 
-  // Validate granularity based on period
-  const periodDuration = period[1].getTime() - period[0].getTime()
-  const hours = periodDuration / (60 * 60 * 1000)
-  const days = hours / 24
+  if (!forDownload) {
+    // Validate granularity based on period
+    const periodDuration = period[1].getTime() - period[0].getTime()
+    const hours = periodDuration / (60 * 60 * 1000)
+    const days = hours / 24
 
-  if (granularity === 'second' && days > 10) {
-    throw new Error(
-      'Second granularity is only allowed for periods up to 10 days',
-    )
-  }
-  if (granularity === 'minute' && days > 60) {
-    throw new Error(
-      'Minute granularity is only allowed for periods up to 60 days',
-    )
+    if (granularity === 'second' && days > 10) {
+      throw new Error(
+        'Second granularity is only allowed for periods up to 10 days',
+      )
+    }
+    if (granularity === 'minute' && days > 60) {
+      throw new Error(
+        'Minute granularity is only allowed for periods up to 60 days',
+      )
+    }
   }
 
   let query = knex
@@ -127,7 +129,10 @@ router.get('/data.json', async (ctx) => {
 
 router.get('/data.xlsx', async (ctx) => {
   console.log('Serving data.xlsx')
-  const { telegrams, from, to } = await getTelegramsAndColumnsForQuery(ctx)
+  const { telegrams, from, to } = await getTelegramsAndColumnsForQuery(
+    ctx,
+    true,
+  )
 
   const data = [
     Object.keys(telegrams[0]),
