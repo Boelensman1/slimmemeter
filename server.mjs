@@ -61,19 +61,14 @@ const getTelegramsAndColumnsForQuery = async (ctx) => {
   const hours = periodDuration / (60 * 60 * 1000)
   const days = hours / 24
 
-  if (granularity === 'second' && hours > 12) {
+  if (granularity === 'second' && days > 10) {
     throw new Error(
-      'Second granularity is only allowed for periods up to 12 hours',
+      'Second granularity is only allowed for periods up to 10 days',
     )
   }
-  if (granularity === 'minute' && days > 14) {
+  if (granularity === 'minute' && days > 60) {
     throw new Error(
-      'Minute granularity is only allowed for periods up to 14 days',
-    )
-  }
-  if (granularity === 'hour' && days > 31) {
-    throw new Error(
-      'Hour granularity is only allowed for periods up to 31 days',
+      'Minute granularity is only allowed for periods up to 60 days',
     )
   }
 
