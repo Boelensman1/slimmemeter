@@ -183,7 +183,7 @@
         document.querySelector('#start_date').value = dateForInput(from)
         document.querySelector('#end_date').value = dateForInput(to)
       }
-      period_changed()
+      document.addEventListener('DOMContentLoaded', period_changed, false)
     </script>
     <style>
       .loader,
@@ -266,7 +266,7 @@
             <option value="P7D" selected>Week</option>
             <option value="P1M">Month</option>
             <option value="P1Y">Year</option>
-            <option value="P100Y" selected>All</option>
+            <option value="P100Y">All</option>
           </select>
         </div>
         <div style="display: flex; flex-direction: column">
